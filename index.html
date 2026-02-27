@@ -5,10 +5,11 @@
   <meta charset="UTF-8">
   <title>Swim Manager</title>
   <link href="/static/styles.css" rel="stylesheet" />
-  <script src="static/main.js"></script>
   <!-- stuff for pdf export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+  <script src="static/main.js" defer></script>
 </head>
 
 <body>
@@ -21,7 +22,7 @@
     <div class="form-row">
 
       <select id="eventName">
-        <option value="" disabled>- Select an event -</option>
+        <option value="" disabled selected>- Select an event -</option>
         <option value="" disabled>Freestyle</option>
         <option>50yd Freestyle</option>
         <option>100yd Freestyle</option>
@@ -59,7 +60,7 @@
         <option>400yd Freestyle Relay</option>
       </select>
       <select id="eventGender">
-        <option value="" disabled>- Men/Women -</option>
+        <option value="" disabled selected>- Men/Women -</option>
         <option>Men's</option>
         <option>Women's</option>
         <option>Mixed</option>

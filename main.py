@@ -50,6 +50,7 @@ def init_db():
             team TEXT,
             seed_time TEXT,
             actual_time TEXT,
+            relay_order INTEGER DEFAULT NULL,
             FOREIGN KEY (event_id) REFERENCES events(id)
         )
     """)
@@ -75,6 +76,7 @@ class Swimmer(BaseModel):
     team: Optional[str] = None
     seed_time: Optional[str] = None
     actual_time: Optional[str] = None
+    relay_order: Optional[int] = None
 
 
 # --- Serve the Frontend ---
@@ -185,8 +187,8 @@ def create_swimmer(swimmer: Swimmer):
     conn = get_db()
     
     cursor = conn.execute(
-        "INSERT INTO event_swimmers (event_id, name, gender, lane, team, seed_time, actual_time) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (swimmer.event_id, swimmer.name, swimmer.gender, swimmer.lane, swimmer.team, swimmer.seed_time, swimmer.actual_time)
+        "INSERT INTO event_swimmers (event_id, name, gender, lane, team, seed_time, actual_time, relay_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (swimmer.event_id, swimmer.name, swimmer.gender, swimmer.lane, swimmer.team, swimmer.seed_time, swimmer.actual_time, swimmer.relay_order)
     )
 
     conn.commit()
@@ -205,8 +207,8 @@ def update_swimmer(swimmer_id: int, swimmer: Swimmer):
     conn = get_db()
 
     result = conn.execute(
-        "UPDATE event_swimmers SET name = ?, gender = ?, lane = ?, team = ?, seed_time = ?, actual_time = ? WHERE id = ?",
-        (swimmer.name, swimmer.lane, swimmer.gender, swimmer.team, swimmer.seed_time, swimmer.actual_time, swimmer_id)
+        "UPDATE event_swimmers SET name = ?, gender = ?, lane = ?, team = ?, seed_time = ?, actual_time = ?, relay_order = ? WHERE id = ?",
+        (swimmer.name, swimmer.gender, swimmer.lane, swimmer.team, swimmer.seed_time, swimmer.actual_time, swimmer.relay_order, swimmer_id)
     )
 
     conn.commit()

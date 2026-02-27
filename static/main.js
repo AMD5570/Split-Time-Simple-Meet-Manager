@@ -48,6 +48,7 @@ async function deleteEvent(id) {
 // ─── RENDERING ─────────────────────────────────────────
 
 function renderEvent(event, swimmers) {
+  const isRelay = event.name.includes("Relay");
   const list = document.getElementById("eventList");
 
   // Create the card container
@@ -80,19 +81,42 @@ function renderEvent(event, swimmers) {
     </table>
 
     <!-- Add swimmer form -->
+
+  ${isRelay ? `
+    <!-- Relay form: one lane, 4 swimmer name inputs -->
+
     <div class="form-row" style="margin-top: 0.75rem;">
-    <input type="text"   id="sw-name-${event.id}"   placeholder="Name" style="width:130px" />
-    <select id="sw-gender-${event.id}" style="width:130px">
-        <option value="" disabled>- Choose -</option>
+      <input type="text"   id="sw-team-${event.id}"   placeholder="Team" style="width:100px" />
+      <input type="number" id="sw-lane-${event.id}"   placeholder="Lane" style="width:60px" min="1" max="8" />
+      <input type="text"   id="sw-seed-${event.id}"   placeholder="Seed time" style="width:90px" />
+    </div>
+
+    <div class="form-row">
+      <input type="text" id="sw-name-${event.id}-1" placeholder="Swimmer 1 (back)" style="width:130px" />
+      <input type="text" id="sw-name-${event.id}-2" placeholder="Swimmer 2 (breast)" style="width:130px" />
+      <input type="text" id="sw-name-${event.id}-3" placeholder="Swimmer 3 (fly)" style="width:130px" />
+      <input type="text" id="sw-name-${event.id}-4" placeholder="Swimmer 4 (free)" style="width:130px" />
+      <button onclick="addSwimmer(${event.id}, true)">Add Lane</button>
+    </div>
+
+  ` : `
+    <!-- Regular individual form -->
+
+    <div class="form-row" style="margin-top: 0.75rem;">
+      <input type="text"   id="sw-name-${event.id}"   placeholder="Name" style="width:130px" />
+      <select id="sw-gender-${event.id}" style="width:150px">
+        <option value="" disabled selected>- Male/Female -</option>
         <option>Male</option>
         <option>Female</option>
         <option>Other</option>
-    </select>
-    <input type="text"   id="sw-team-${event.id}"   placeholder="Team" style="width:100px" />
-    <input type="number" id="sw-lane-${event.id}"   placeholder="Lane" style="width:60px" min="1" max="10" />
-    <input type="text"   id="sw-seed-${event.id}"   placeholder="Seed time (e.g. 1:52.23)" style="width:170px" />
-    <button onclick="addSwimmer(${event.id})">Add Swimmer</button>
+      </select>
+      <input type="text"   id="sw-team-${event.id}"   placeholder="Team" style="width:100px" />
+      <input type="number" id="sw-lane-${event.id}"   placeholder="Lane" style="width:60px" min="1" max="8" />
+      <input type="text"   id="sw-seed-${event.id}"   placeholder="Seed time (e.g. 1:00.05)" style="width:170px" />
+      <button onclick="addSwimmer(${event.id}, false)">Add Swimmer</button>
     </div>
+
+  `}
 `;
 
   list.appendChild(card);
@@ -100,52 +124,93 @@ function renderEvent(event, swimmers) {
 
 // Returns the HTML string for a single swimmer row
 function swimmerRow(s, eventId) {
+  const nameCell = s.relay_order
+    ? `<small style="opacity: 0.6">Swimmer ${s.relay_order}:</small> ${s.name}`  // show leg number for relays
+    : s.name;
+
   return `
     <tr id="swimmer-${s.id}">
-    <td>${s.lane}</td>
-    <td>${s.name}</td>
-    <td>${s.gender}</td>
-    <td>${s.team || "—"}</td>
-    <td>${s.seed_time || "—"}</td>
-    <td>
+      <td>${s.lane}</td>
+      <td>${nameCell}</td>
+      <td>${s.gender}</td>
+      <td>${s.team || "—"}</td>
+      <td>${s.seed_time || "—"}</td>
+      <td>
         <input
-        type="text"
-        value="${s.actual_time || ""}"
-        placeholder="0:00.00"
-        onchange="saveActualTime(${s.id}, this.value, '${s.name}', '${s.gender}', ${s.lane}, '${s.team || ""}', '${s.seed_time || ""}', ${eventId})"
+          type="text"
+          value="${s.actual_time || ""}"
+          placeholder="0:00.00"
+          onchange="saveActualTime(${s.id}, this.value, '${s.name}', '${s.gender}', ${s.lane}, '${s.team || ""}', '${s.seed_time || ""}', ${eventId})"
         />
-    </td>
-    <td>
+      </td>
+      <td>
         <button class="danger" onclick="deleteSwimmer(${s.id})">Remove</button>
-    </td>
+      </td>
     </tr>
-`;
+  `;
 }
 
 // ─── SWIMMERS ──────────────────────────────────────────
 
-async function addSwimmer(eventId) {
-  const name = document.getElementById(`sw-name-${eventId}`).value.trim();
-  const gender = document.getElementById(`sw-gender-${eventId}`).value.trim();
-  const team = document.getElementById(`sw-team-${eventId}`).value.trim();
-  const lane = parseInt(document.getElementById(`sw-lane-${eventId}`).value);
-  const seed_time = document.getElementById(`sw-seed-${eventId}`).value.trim();
+async function addSwimmer(eventId, isRelay) {
 
-  if (!name || !lane) return alert("Name and lane are required.");
+  if (isRelay) {
 
-  await fetch(`${API}/swimmers`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      event_id: eventId,
-      name,
-      gender,
-      lane,
-      team: team || null,
-      seed_time: seed_time || null,
-      actual_time: null,
-    }),
-  });
+    const gender = 'Mixed';
+    const lane = parseInt(document.getElementById(`sw-lane-${eventId}`).value);
+
+    if (!lane) {
+      return alert("A lane is required.");
+    }
+
+    // go thru all relay swimmers
+    for (let i = 1; i <= 4; i++) {
+
+      const name = document.getElementById(`sw-name-${eventId}-${i}`).value.trim();
+
+      if (!name) continue; // skip empty ones
+
+      await fetch(`${API}/swimmers`, {
+
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_id: eventId,
+          name,
+          gender,
+          lane,
+          team: document.getElementById(`sw-team-${eventId}`).value.trim() || null,
+          seed_time: document.getElementById(`sw-seed-${eventId}`).value.trim() || null,
+          actual_time: null,
+          relay_order: i
+
+        })
+      });
+    }
+  } else {
+    // if NOT relay
+    const name = document.getElementById(`sw-name-${eventId}`).value.trim();
+    const gender = document.getElementById(`sw-gender-${eventId}`).value.trim();
+    const team = document.getElementById(`sw-team-${eventId}`).value.trim();
+    const lane = parseInt(document.getElementById(`sw-lane-${eventId}`).value);
+    const seed_time = document.getElementById(`sw-seed-${eventId}`).value.trim();
+
+    if (!name || !lane) return alert("Name and lane are required.");
+
+    await fetch(`${API}/swimmers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event_id: eventId,
+        name,
+        gender,
+        lane,
+        team: team || null,
+        seed_time: seed_time || null,
+        actual_time: null,
+      }),
+    });
+  }
 
   loadEvents();
 }
@@ -189,9 +254,10 @@ loadEvents();
 async function exportCSV() {
   const res = await fetch(`${API}/events`);
   const events = await res.json();
+  let date = new Date().toISOString().split("T")[0];
 
   // CSV header row
-  let csv = "Event,Heat,Lane,Name,Team,Seed Time,Actual Time\n";
+  let csv = "Event,Heat,Lane,Name,Gender,Team,Seed Time,Actual Time\n";
 
   for (const event of events) {
     const swRes = await fetch(`${API}/events/${event.id}/swimmers`);
@@ -203,7 +269,7 @@ async function exportCSV() {
     } else {
       for (const s of swimmers) {
         // Wrap fields in quotes in case they contain commas
-        csv += `"${event.name}",${event.heat},${s.lane},"${s.name}","${s.team || ""}","${s.seed_time || ""}","${s.actual_time || ""}"\n`;
+        csv += `"${event.name}",${event.heat},${s.lane},"${s.name}","${s.gender || ""}","${s.team || ""}","${s.seed_time || ""}","${s.actual_time || ""}"\n`;
       }
     }
   }
@@ -213,7 +279,7 @@ async function exportCSV() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "swim-meet.csv";
+  a.download = `swim-meet-heatsheet-${date}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -223,6 +289,7 @@ async function exportCSV() {
 async function exportPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
+  let date = new Date().toISOString().split("T")[0];
 
   const res = await fetch(`${API}/events`);
   const events = await res.json();
@@ -230,7 +297,9 @@ async function exportPDF() {
   let y = 15; // tracks vertical position on the page
 
   doc.setFontSize(16);
-  doc.text("Swim Meet Results", 14, y);
+  doc.text("Swim Meet Heatsheet", 14, y);
+  y += 8;
+  doc.text(date, 14, y);
   y += 10;
 
   for (const event of events) {
@@ -240,19 +309,20 @@ async function exportPDF() {
     // Event heading
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text(`${event.name} — Heat ${event.heat}`, 14, y);
+    doc.text(`${event.name} - Heat ${event.heat}`, 14, y);
     y += 6;
 
     // Swimmer table for this event
     doc.autoTable({
       startY: y,
-      head: [["Lane", "Name", "Team", "Seed Time", "Actual Time"]],
+      head: [["Lane", "Name", "Gender", "Team", "Seed Time", "Actual Time"]],
       body: swimmers.map((s) => [
         s.lane,
         s.name,
-        s.team || "—",
-        s.seed_time || "—",
-        s.actual_time || "—",
+        s.gender,
+        s.team || "-",
+        s.seed_time || "-",
+        s.actual_time || "-",
       ]),
       styles: { fontSize: 9 },
       headStyles: { fillColor: [59, 130, 246] },
@@ -263,11 +333,12 @@ async function exportPDF() {
           ? swimmers.map((s) => [
               s.lane,
               s.name,
-              s.team || "—",
-              s.seed_time || "—",
-              s.actual_time || "—",
+              s.gender,
+              s.team || "-",
+              s.seed_time || "-",
+              s.actual_time || "-",
             ])
-          : [["—", "No swimmers entered", "", "", ""]],
+          : [["-", "No swimmers entered", "", "", ""]],
     });
 
     y = doc.lastAutoTable.finalY + 10;
@@ -279,5 +350,5 @@ async function exportPDF() {
     }
   }
 
-  doc.save("swim-meet.pdf");
+  doc.save(`swim-meet-heatsheet-${date}.pdf`);
 }
