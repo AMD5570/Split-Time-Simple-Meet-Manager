@@ -1,246 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Swim Manager</title>
   <link href="/static/styles.css" rel="stylesheet" />
+  <script src="static/main.js"></script>
+  <!-- stuff for pdf export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
+
 <body>
 
   <h1>Swim Manager</h1>
 
-  <!-- Add Event Form -->
-  <h2>Add Event</h2>
-  <div class="form-row">
-    <select id="eventName">
-      <option value="" disabled>- Select an event -</option>
-      <option value="" disabled>Freestyle</option>
-      <option>50yd Freestyle</option>
-      <option>100yd Freestyle</option>
-      <option>200yd Freestyle</option>
-      <option>500yd Freestyle</option>
-      <option>1000yd Freestyle</option>
-      <option>1650yd Freestyle</option>
+  <main>
+    <!-- Add Event Form -->
+    <h2>Add Event</h2>
+    <div class="form-row">
 
-      <option value="" disabled>Backstroke</option>
-      <option>50yd Backstroke</option>
-      <option>100yd Backstroke</option>
-      <option>200yd Backstroke</option>
+      <select id="eventName">
+        <option value="" disabled>- Select an event -</option>
+        <option value="" disabled>Freestyle</option>
+        <option>50yd Freestyle</option>
+        <option>100yd Freestyle</option>
+        <option>200yd Freestyle</option>
+        <option>500yd Freestyle</option>
+        <option>1000yd Freestyle</option>
+        <option>1650yd Freestyle</option>
 
-      <option value="" disabled>Butterfly</option>
-      <option>50yd Butterfly</option>
-      <option>100yd Butterfly</option>
-      <option>200yd Butterfly</option>
+        <option value="" disabled>Backstroke</option>
+        <option>50yd Backstroke</option>
+        <option>100yd Backstroke</option>
+        <option>200yd Backstroke</option>
 
-      <option value="" disabled>Breaststroke</option>
-      <option>50yd Breaststroke</option>
-      <option>100yd Breaststroke</option>
-      <option>200yd Breaststroke</option>
+        <option value="" disabled>Butterfly</option>
+        <option>50yd Butterfly</option>
+        <option>100yd Butterfly</option>
+        <option>200yd Butterfly</option>
 
-      <option value="" disabled>Individual Medley</option>
-      <option>100yd Individual Medley</option>
-      <option>200yd Individual Medley</option>
-      <option>400yd Individual Medley</option>
+        <option value="" disabled>Breaststroke</option>
+        <option>50yd Breaststroke</option>
+        <option>100yd Breaststroke</option>
+        <option>200yd Breaststroke</option>
 
-      <option value="" disabled>Medley Relay</option>
-      <option>200yd Medley Relay</option>
-      <option>400yd Medley Relay</option>
+        <option value="" disabled>Individual Medley</option>
+        <option>100yd Individual Medley</option>
+        <option>200yd Individual Medley</option>
+        <option>400yd Individual Medley</option>
 
-      <option value="" disabled>Freestyle Relay</option>
-      <option>200yd Freestyle Relay</option>
-      <option>400yd Freestyle Relay</option>
-    </select>
-    <select id="eventGender">
-      <option value="" disabled>- Men/Women -</option>
-      <option>Men's</option>
-      <option>Women's</option>
-      <option>Mixed</option>
-    </select>
-    <input type="number" id="eventHeat" placeholder="Heat #" style="width: 80px" />
-    <button onclick="addEvent()">Add Event</button>>
-  </div>
+        <option value="" disabled>Medley Relay</option>
+        <option>200yd Medley Relay</option>
+        <option>400yd Medley Relay</option>
 
-  <!-- Events will be rendered here -->
-  <div id="eventList"></div>
-
-<script>
-  const API = "http://localhost:8000";
-
-  // ─── EVENTS ────────────────────────────────────────────
-
-  async function loadEvents() {
-    const res = await fetch(`${API}/events`);
-    const events = await res.json();
-
-    const list = document.getElementById("eventList");
-    list.innerHTML = "";
-
-    for (const event of events) {
-      // For each event, also fetch its swimmers
-      const swRes = await fetch(`${API}/events/${event.id}/swimmers`);
-      const swimmers = await swRes.json();
-      renderEvent(event, swimmers);
-    }
-  }
-
-  async function addEvent() {
-
-    const name = document.getElementById("eventName").value.trim();
-    const gender = document.getElementById("eventGender").value.trim();
-    const heat = parseInt(document.getElementById("eventHeat").value);
-
-    if (!name || !heat || !gender) {
-      return alert("Please enter a name, gender, and heat number.");
-    }
-
-    await fetch(`${API}/events`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, gender, heat })
-    });
-
-    // Clear the inputs and reload
-    document.getElementById("eventName").value = "";
-    document.getElementById("eventGender").value = "";
-    document.getElementById("eventHeat").value = "";
-    loadEvents();
-  }
-
-  async function deleteEvent(id) {
-    if (!confirm("Delete this event and all its swimmers?")) return;
-    await fetch(`${API}/events/${id}`, { method: "DELETE" });
-    loadEvents();
-  }
-
-  // ─── RENDERING ─────────────────────────────────────────
-
-  function renderEvent(event, swimmers) {
-    const list = document.getElementById("eventList");
-
-    // Create the card container
-    const card = document.createElement("div");
-    card.className = "event-card";
-    card.id = `event-${event.id}`;
-
-    card.innerHTML = `
-      <h3>
-        ${event.gender} ${event.name} - Heat ${event.heat}
-        <button class="danger" onclick="deleteEvent(${event.id})">Delete Event</button>
-      </h3>
-
-      <!-- Swimmer table -->
-      <table>
-        <thead>
-          <tr>
-            <th>Lane</th>
-            <th>Name</th>
-            <th>Gender</th>
-            <th>Team</th>
-            <th>Seed Time</th>
-            <th>Actual Time</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="swimmers-${event.id}">
-          ${swimmers.map(s => swimmerRow(s, event.id)).join("")}
-        </tbody>
-      </table>
-
-      <!-- Add swimmer form -->
-      <div class="form-row" style="margin-top: 0.75rem;">
-        <input type="text"   id="sw-name-${event.id}"   placeholder="Name" style="width:130px" />
-        <select id="sw-gender-${event.id}" style="width:130px">
-          <option value="" disabled>- Choose -</option>
-          <option>Male</option>
-          <option>Female</option>
-          <option>Other</option>
-        </select>
-        <input type="text"   id="sw-team-${event.id}"   placeholder="Team" style="width:100px" />
-        <input type="number" id="sw-lane-${event.id}"   placeholder="Lane" style="width:60px" min="1" max="8" />
-        <input type="text"   id="sw-seed-${event.id}"   placeholder="Seed time" style="width:90px" />
-        <button onclick="addSwimmer(${event.id})">Add Swimmer</button>
+        <option value="" disabled>Freestyle Relay</option>
+        <option>200yd Freestyle Relay</option>
+        <option>400yd Freestyle Relay</option>
+      </select>
+      <select id="eventGender">
+        <option value="" disabled>- Men/Women -</option>
+        <option>Men's</option>
+        <option>Women's</option>
+        <option>Mixed</option>
+      </select>
+      <input type="number" id="eventHeat" placeholder="Heat #" style="width: 80px" min="1" value="1" />
+      <button class="addEventBttn" onclick="addEvent()">Add Event</button>
+      <div class="export">
+        <button class="exportBttn" onclick="exportCSV()">Export CSV</button>
+        <button class="exportBttn" onclick="exportPDF()">Export PDF</button>
       </div>
-    `;
+    </div>
 
-    list.appendChild(card);
-  }
+    <!-- Events will be rendered here -->
+    <div id="eventList"></div>
+  </main>
 
-  // Returns the HTML string for a single swimmer row
-  function swimmerRow(s, eventId) {
-    return `
-      <tr id="swimmer-${s.id}">
-        <td>${s.gender}</td>
-        <td>${s.lane}</td>
-        <td>${s.name}</td>
-        <td>${s.team || "—"}</td>
-        <td>${s.seed_time || "—"}</td>
-        <td>
-          <input
-            type="text"
-            value="${s.actual_time || ""}"
-            placeholder="0:00.00"
-            onchange="saveActualTime(${s.id}, this.value, '${s.name}', '${s.gender}', ${s.lane}, '${s.team || ""}', '${s.seed_time || ""}', ${eventId})"
-          />
-        </td>
-        <td>
-          <button class="danger" onclick="deleteSwimmer(${s.id})">Remove</button>
-        </td>
-      </tr>
-    `;
-  }
-
-  // ─── SWIMMERS ──────────────────────────────────────────
-
-  async function addSwimmer(eventId) {
-    const name      = document.getElementById(`sw-name-${eventId}`).value.trim();
-    const gender    = document.getElementById(`sw-gender-${eventId}`).value.trim();
-    const team      = document.getElementById(`sw-team-${eventId}`).value.trim();
-    const lane      = parseInt(document.getElementById(`sw-lane-${eventId}`).value);
-    const seed_time = document.getElementById(`sw-seed-${eventId}`).value.trim();
-
-    if (!name || !lane) return alert("Name and lane are required.");
-
-    await fetch(`${API}/swimmers`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        event_id: eventId,
-        name,
-        gender,
-        lane,
-        team: team || null,
-        seed_time: seed_time || null,
-        actual_time: null
-      })
-    });
-
-    loadEvents();
-  }
-
-  async function saveActualTime(id, actual_time, name, gender, lane, team, seed_time, eventId) {
-    await fetch(`${API}/swimmers/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        event_id: eventId,
-        name,
-        gender,
-        lane,
-        team: team || null,
-        seed_time: seed_time || null,
-        actual_time: actual_time || null
-      })
-    });
-  }
-
-  async function deleteSwimmer(id) {
-    await fetch(`${API}/swimmers/${id}`, { method: "DELETE" });
-    // Just remove the row from the DOM instead of reloading everything
-    document.getElementById(`swimmer-${id}`).remove();
-  }
-
-  // ─── START ─────────────────────────────────────────────
-  loadEvents();
-</script>
+  <footer>
+    <p>&copy; Austin deHaan -
+      <script>document.write(new Date().getFullYear())</script>
+    </p>
+  </footer>
 </body>
+
 </html>
