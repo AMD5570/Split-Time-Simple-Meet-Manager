@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,17 +16,23 @@ app.add_middleware(
 )
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# ======================================================================
+# ======================================================================
+
 # --- Database Setup ---
+
 def get_db():
-    """Opens a connection to the SQLite database file."""
+    """
+    Opens a connection to the SQLite database file.
+    """
     conn = sqlite3.connect("swim.db")
-    conn.row_factory = sqlite3.Row  # lets us access columns by name
+    conn.row_factory = sqlite3.Row  
     return conn
 
 
 def init_db():
     """
-    
+    Creates all database schemas to be used in the swim app.
     """
 
     conn = get_db()
@@ -70,8 +76,11 @@ def init_db():
 
 init_db()  # run this when the server starts
 
+# ======================================================================
+# ======================================================================
 
 # --- Data Model ---
+
 class Meet(BaseModel):
     name: Optional[str] = None
     saved: int = 0
@@ -81,7 +90,6 @@ class Event(BaseModel):
     name: str
     heat: int
     gender: str
-
 
 class Swimmer(BaseModel):
     event_id: int
@@ -93,17 +101,25 @@ class Swimmer(BaseModel):
     actual_time: Optional[str] = None
     relay_order: Optional[int] = None
 
+# ======================================================================
+# ======================================================================
 
 # --- Serve the Frontend ---
+
 @app.get("/")
 def serve_frontend():
     return FileResponse("index.html")
 
+# ======================================================================
+# ======================================================================
 
-# --- API Routes ---
+# --- Meets ---
 
 @app.get("/meets")
 def get_meets():
+    """
+    Get all meets if they're saved.
+    """
     conn = get_db()
 
     meets = conn.execute(
@@ -111,11 +127,15 @@ def get_meets():
     ).fetchall()
 
     conn.close()
+
     return [dict(m) for m in meets]
 
 
 @app.post("/meets")
 def create_meet():
+    """
+    Create a new meet and make it so it's not saved yet.
+    """
     conn = get_db()
 
     cursor = conn.execute(
@@ -124,7 +144,6 @@ def create_meet():
     )
 
     conn.commit()
-
     new_id = cursor.lastrowid
 
     conn.close()
@@ -134,10 +153,16 @@ def create_meet():
 
 @app.put("/meets/{meet_id}")
 def save_meet(meet_id: int, meet: Meet):
+    """
+    Saves a new meet; sets saved to 1 and gives it a name
 
+    Args:
+        meet_id (int): the ID of the new meet
+        meet (Meet): the name of the meet (Meet class)
+    """
     conn = get_db()
 
-    result = conn.execute(
+    conn.execute(
         "UPDATE meets SET name = ?, saved = 1 WHERE id = ?",
         (meet.name, meet_id)
     )
@@ -145,14 +170,17 @@ def save_meet(meet_id: int, meet: Meet):
     conn.commit()
     conn.close()
 
-    if result.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Meet not found")
     return {"id": meet_id, "name": meet.name, "saved": 1}
 
 
 @app.delete("/meets/{meet_id}")
 def delete_meet(meet_id: int):
+    """
+    Deletes a meet when given a meet ID.
 
+    Args:
+        meet_id (int): the ID of a meet to be deleted
+    """
     conn = get_db()
 
     # cascade delete events and their swimmers
@@ -160,9 +188,11 @@ def delete_meet(meet_id: int):
         "SELECT id FROM events WHERE meet_id = ?", (meet_id,)
     ).fetchall()
 
+    # delete all events in the meet
     for event in events:
         conn.execute(
-            "DELETE FROM event_swimmers WHERE event_id = ?", (event["id"],)
+            "DELETE FROM event_swimmers WHERE event_id = ?", 
+            (event["id"],)
         )
 
     conn.execute("DELETE FROM events WHERE meet_id = ?", (meet_id,))
@@ -173,10 +203,19 @@ def delete_meet(meet_id: int):
 
     return {"message": "Meet deleted"}
 
+# ======================================================================
+# ======================================================================
+
+# --- Events ---
 
 @app.get("/events")
-def get_events(meet_id: int = Query(None)):
+def get_events(meet_id: int):
+    """
+    Get all events given a meet ID.
 
+    Args:
+        meed_id (int): the ID of a meet 
+    """
     conn = get_db()
 
     if meet_id:
@@ -198,9 +237,11 @@ def get_events(meet_id: int = Query(None)):
 @app.post("/events")
 def create_event(event: Event):
     """
-    
-    """
+    Create a new event for a meet.
 
+    Args:
+        event (Event): the event class
+    """
     conn = get_db()
 
     cursor = conn.execute(
@@ -212,15 +253,19 @@ def create_event(event: Event):
     new_id = cursor.lastrowid
 
     conn.close()
+
     return {"id": new_id, **event.dict()}
 
 
 @app.put("/events/{event_id}")
 def update_event(event_id: int, event: Event):
     """
-    
-    """
+    Update an event's info.
 
+    Args:
+        event_id (int): the new event's ID
+        event (Event): the event class
+    """
     conn = get_db()
 
     result = conn.execute(
@@ -231,17 +276,17 @@ def update_event(event_id: int, event: Event):
     conn.commit()
     conn.close()
 
-    if result.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Task not found")
     return {"id": event_id, **event.dict()}
 
 
 @app.delete("/events/{event_id}")
 def delete_event(event_id: int):
     """
-    
-    """
+    Deletes an event given an event ID.
 
+    Args:
+        event_id (int): the ID of the event to be deleted.
+    """
     conn = get_db()
 
     conn.execute("DELETE FROM event_swimmers WHERE event_id = ?", (event_id,))
@@ -250,18 +295,22 @@ def delete_event(event_id: int):
     conn.commit()
     conn.close()
 
-    if result.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Event not found")
     return {"message": "Event deleted"}
 
+# ======================================================================
+# ======================================================================
 
-# --- Swimmer Routes ---
+
+# --- Swimmers ---
+
 @app.get("/events/{event_id}/swimmers")
 def get_swimmers(event_id: int):
     """
-    
+    Get all swimmers in an event.
+
+    Args:
+        event_id (int): The ID of an event
     """
-    
     conn = get_db()
     
     swimmers = conn.execute(
@@ -270,13 +319,17 @@ def get_swimmers(event_id: int):
     ).fetchall()
 
     conn.close()
+
     return [dict(s) for s in swimmers]
 
 
 @app.post("/swimmers")
 def create_swimmer(swimmer: Swimmer):
     """
-    
+    Create a new swimmer.
+
+    Args:
+        swimmer (Swimmer): the swimmer class.
     """
     conn = get_db()
     
@@ -289,15 +342,19 @@ def create_swimmer(swimmer: Swimmer):
     new_id = cursor.lastrowid
 
     conn.close()
+
     return {"id": new_id, **swimmer.dict()}
 
 
 @app.put("/swimmers/{swimmer_id}")
 def update_swimmer(swimmer_id: int, swimmer: Swimmer):
     """
-    
-    """
+    Update a swimmer's info.
 
+    Args:
+        swimmer_id (int): the ID of the swimmer to be updated.
+        swimmer (Swimmer): the swimmer class.
+    """
     conn = get_db()
 
     result = conn.execute(
@@ -308,17 +365,17 @@ def update_swimmer(swimmer_id: int, swimmer: Swimmer):
     conn.commit()
     conn.close()
 
-    if result.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Swimmer not found")
     return {"id": swimmer_id, **swimmer.dict()}
 
 
 @app.delete("/swimmers/{swimmer_id}")
 def delete_swimmer(swimmer_id: int):
     """
-    
-    """
-    
+    Delete a swimmer.
+
+    Args:
+        swimmer_id (int): the ID of the swimmer to be deleted.
+    """ 
     conn = get_db()
     
     result = conn.execute("DELETE FROM event_swimmers WHERE id = ?", (swimmer_id,))
@@ -326,6 +383,7 @@ def delete_swimmer(swimmer_id: int):
     conn.commit()
     conn.close()
     
-    if result.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Swimmer not found")
     return {"message": "Swimmer deleted"}
+
+# ======================================================================
+# ======================================================================

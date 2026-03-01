@@ -1,8 +1,13 @@
 const API = "http://localhost:8000";
+
 let activeMeetId = null;
 let activeMeetSaved = false;
+let activeMeetName = null;
 
-// ─── EVENTS ────────────────────────────────────────────
+// ======================================================================
+// ======================================================================
+
+// --- Events ---
 
 async function loadEvents() {
   if (!activeMeetId) return;
@@ -52,7 +57,10 @@ async function deleteEvent(id) {
   loadEvents();
 }
 
-// ─── RENDERING ─────────────────────────────────────────
+// ======================================================================
+// ======================================================================
+
+// --- RENDERING ---
 
 function renderEvent(event, swimmers) {
   const isRelay = event.name.includes("Relay");
@@ -158,7 +166,10 @@ function swimmerRow(s, eventId) {
 
 }
 
-// ─── SWIMMERS ──────────────────────────────────────────
+// ======================================================================
+// ======================================================================
+
+// --- SWIMMERS ---
 
 async function addSwimmer(eventId, isRelay) {
 
@@ -255,8 +266,10 @@ async function deleteSwimmer(id) {
   document.getElementById(`swimmer-${id}`).remove();
 }
 
+// ======================================================================
+// ======================================================================
 
-// ─── MEETS ─────────────────────────────────────────────
+// --- MEETS ---
 
 async function loadMeets() {
   const res = await fetch(`${API}/meets`);
@@ -273,7 +286,7 @@ async function loadMeets() {
   meets.forEach(meet => {
     const div = document.createElement("div");
     div.className = `meet-item${meet.id === activeMeetId ? " active" : ""}`;
-    div.onclick = () => switchMeet(meet.id, true);
+    div.onclick = () => switchMeet(meet.id, true, meet.name);
     div.innerHTML = `
       <span onclick="switchMeet(${meet.id}, true)">${meet.name}</span>
       <button class="danger" style="padding:2px 7px; font-size:0.8rem"
@@ -304,7 +317,7 @@ async function newMeet() {
   loadMeets();
 }
 
-async function switchMeet(id, saved) {
+async function switchMeet(id, saved, name) {
   // Prompt to save if switching away from an unsaved meet
   if (activeMeetId && !activeMeetSaved && activeMeetId !== id) {
     const proceed = confirm("You have an unsaved meet. Switch anyway?");
@@ -313,9 +326,13 @@ async function switchMeet(id, saved) {
 
   activeMeetId = id;
   activeMeetSaved = saved;
+  activeMeetName = name;
 
   document.getElementById("noMeet").style.display = "none";
   document.getElementById("meetContent").style.display = "block";
+  const meetTitleTxt = document.getElementById('mainEventTxt');
+
+  meetTitleTxt.innerHTML = `${activeMeetName} - <span style="opacity: 0.5">Add Events</span>`
 
   loadEvents();
   loadMeets();
@@ -350,9 +367,10 @@ async function deleteMeet(id) {
   loadMeets();
 }
 
+// ======================================================================
+// ======================================================================
 
-
-// ─── EXPORT CSV ────────────────────────────────────────
+// --- CVS EXPORTING ---
 
 async function exportCSV() {
   const res = await fetch(`${API}/events?meet_id=${activeMeetId}`);
@@ -381,13 +399,18 @@ async function exportCSV() {
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
+
   a.href = url;
   a.download = `swim-meet-heatsheet-${date}.csv`;
   a.click();
+  
   URL.revokeObjectURL(url);
 }
 
-// ─── EXPORT PDF ────────────────────────────────────────
+// ======================================================================
+// ======================================================================
+
+// --- PDF EXPORTING ---
 
 async function exportPDF() {
   const { jsPDF } = window.jspdf;
@@ -456,5 +479,12 @@ async function exportPDF() {
   doc.save(`swim-meet-heatsheet-${date}.pdf`);
 }
 
-// ─── START ─────────────────────────────────────────────
+// ======================================================================
+// ======================================================================
+
+// --- START THE APP (LOAD) ---
+
 loadMeets();
+
+// ======================================================================
+// ======================================================================

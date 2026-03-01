@@ -3,9 +3,9 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Swim Manager</title>
+  <title>SplitTime - A Simple Swim Manager</title>
   <link href="/static/styles.css" rel="stylesheet" />
-  <!-- stuff for pdf export -->
+  <!-- stuff for pdf and cvs export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
@@ -14,7 +14,12 @@
 
 <body>
 
-  <h1>Swim Manager</h1>
+  <header>
+    <h1>SplitTime - <small style="opacity: 0.7">A Simple Swim Manager</small></h1>
+    <h4 style="opacity: 0.9">Create heatsheets and keep track of your swimmers times! Export your sheet as a CVS or PDF to print or share elsewhere!</h4>
+  </header>
+
+  <hr>
 
   <div class="app-layout">
 
@@ -34,7 +39,7 @@
       <div id="meetContent" style="display: none">
 
         <!-- Add Event Form -->
-        <h2>Add Event</h2>
+        <h2 id="mainEventTxt">Add Events</h2>
         <div class="form-row">
           <select id="eventName">
             <option value="" disabled selected>- Select an event -</option>
@@ -98,7 +103,8 @@
 
   <footer>
     <p>&copy; Austin deHaan -
-      <script>document.write(new Date().getFullYear())</script>
+      <script>document.write(new Date().getFullYear())</script> <br>
+      <small>v. 1.0.0</small>
     </p>
   </footer>
 </body>
