@@ -26,5 +26,7 @@ If something comes to my mind that I'd like to add, all be sure to add it in the
 ## Authors
 
 Austin deHaan
+
 Created for the RIT Swim Club
+
 Created using JavaScript, FastAPI, and SQLite
