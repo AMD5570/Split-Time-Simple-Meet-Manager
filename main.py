@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -209,7 +209,7 @@ def delete_meet(meet_id: int):
 # --- Events ---
 
 @app.get("/events")
-def get_events(meet_id: int):
+def get_events(meet_id: int = Query(None)):
     """
     Get all events given a meet ID.
 
