@@ -1,4 +1,4 @@
-# SplitTime - A Simple Swim Meet Manager
+# [SplitTime - A Simple Swim Meet Manager](https://ff4.student.rit.edu/austin/Split-Time-Simple-Meet-Manager/)
 
 SplitTime is an easy-to-use swim meet managing tool where you can track events, swimmers swimming those events, and times.
 Think of it as a free, online alternative to programs such as Hy-Tek.
